@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windows Update</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;600;700;900&family=Dancing+Script:wght@700&family=Press+Start+2P&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #000;
+    overflow: hidden;
+    font-family: 'Segoe UI', 'Poppins', sans-serif;
+    color: #fff;
+    cursor: default;
+    user-select: none;
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN SYSTEM
+     ═══════════════════════════════════════ */
+  .screen {
+    position: fixed; inset: 0;
+    display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+    z-index: 100;
+    transition: opacity .5s;
+  }
+  .screen.active { display: flex; }
+
+  /* ─── SCREEN 1: BIOS BOOT ─── */
+  #screen1 {
+    background: #000;
+    font-family: 'Courier New', monospace;
+    align-items: flex-start;
+    padding: 40px;
+    font-size: 14px;
+    color: #aaa;
+    line-height: 1.8;
+  }
+  #biosText span { color: #fff; }
+  #biosText .bios-yellow { color: #aa0; }
+  #biosText .bios-red { color: #f44; }
+  #biosText .bios-green { color: #0a0; }
+  .bios-cursor {
+    display: inline-block;
+    width: 8px; height: 16px;
+    background: #aaa;
+    animation: blink-cursor .5s step-end infinite;
+    vertical-align: middle;
+  }
+
+  /* ─── SCREEN 2: WINDOWS UPDATE ─── */
+  #screen2 {
+    background: #0078d4;
+  }
+  .win-update-icon {
+    width: 100px; height: 100px;
+    border: 6px solid #fff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1.5s linear infinite;
+    margin-bottom: 40px;
+  }
+  .win-update-text {
+    font-size: 24px;
+    font-weight: 300;
+    margin-bottom: 10px;
+  }
+  .win-update-sub {
+    font-size: 16px;
+    font-weight: 300;
+    opacity: .8;
+  }
+  .win-update-percent {
+    font-size: 48px;
+    font-weight: 200;
+    margin: 20px 0;
+  }
+
+  /* ─── SCREEN 3: FAKE DESKTOP WITH POPUPS ─── */
+  #screen3 {
+    background: linear-gradient(135deg, #1a5276, #2e86c1, #3498db);
+    align-items: stretch; justify-content: flex-end;
+  }
+  .fake-taskbar {
+    height: 48px;
+    background: linear-gradient(to right, #1a1a2e, #16213e);
+    display: flex; align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+    z-index: 10;
+  }
+  .taskbar-start {
+    padding: 6px 14px;
+    background: linear-gradient(to bottom, #3a7bd5, #2563a0);
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .taskbar-time {
+    margin-left: auto;
+    font-size: 12px;
+    color: #ccc;
+  }
+
+  /* Popup windows */
+  .popup {
+    position: absolute;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    animation: popup-in .3s ease-out;
+    display: none;
+  }
+  .popup.show { display: block; }
+  .popup-header {
+    height: 32px;
+    display: flex; align-items: center;
+    padding: 0 10px;
+    font-size: 12px;
+    gap: 8px;
+  }
+  .popup-close {
+    margin-left: auto;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .popup-body {
+    padding: 20px;
+    text-align: center;
+  }
+
+  /* Virus popup */
+  .popup-virus {
+    width: 420px;
+    top: 60px; left: 50px;
+    z-index: 20;
+  }
+  .popup-virus .popup-header {
+    background: #c0392b;
+  }
+  .popup-virus .popup-body {
+    background: #1a1a1a;
+  }
+  .popup-virus .popup-close:hover { background: #e74c3c; }
+  .virus-icon { font-size: 50px; margin-bottom: 10px; }
+  .virus-title {
+    font-size: 18px; font-weight: 700;
+    color: #e74c3c;
+    margin-bottom: 8px;
+  }
+  .virus-text { font-size: 13px; color: #ccc; line-height: 1.6; }
+  .virus-btn {
+    margin-top: 15px;
+    padding: 10px 30px;
+    background: #e74c3c;
+    border: none; border-radius: 6px;
+    color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    animation: pulse-btn 1s ease-in-out infinite;
+  }
+
+  /* Warning popup */
+  .popup-warn {
+    width: 380px;
+    top: 120px; right: 80px;
+    z-index: 21;
+  }
+  .popup-warn .popup-header {
+    background: #e67e22;
+  }
+  .popup-warn .popup-body {
+    background: #1a1a1a;
+  }
+  .warn-title { color: #f39c12; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .warn-text { color: #ccc; font-size: 12px; line-height: 1.6; }
+
+  /* Error popup */
+  .popup-error {
+    width: 350px;
+    bottom: 100px; left: 120px;
+    z-index: 22;
+  }
+  .popup-error .popup-header {
+    background: #2c3e50;
+  }
+  .popup-error .popup-body {
+    background: #1a1a1a;
+  }
+  .error-icon { font-size: 40px; margin-bottom: 8px; }
+  .error-title { color: #3498db; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .error-text { color: #aaa; font-size: 12px; }
+
+  /* Hacked popup - the sammy image */
+  .popup-hacked {
+    width: 500px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+  }
+  .popup-hacked .popup-header {
+    background: #8e44ad;
+  }
+  .popup-hacked .popup-body {
+    background: #111;
+    padding: 15px;
+  }
+  .hacked-img {
+    width: 100%;
+    border-radius: 6px;
+    border: 2px solid #8e44ad;
+    margin-bottom: 12px;
+  }
+  .hacked-text {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: #e74c3c;
+    line-height: 1.8;
+    animation: glitch-text .3s infinite;
+  }
+
+  /* ─── SCREEN 4: BSOD ─── */
+  #screen4 {
+    background: #0078d7;
+    text-align: center;
+    padding: 15%;
+  }
+  .bsod-sad { font-size: 100px; margin-bottom: 20px; }
+  .bsod-title { font-size: 24px; margin-bottom: 20px; }
+  .bsod-text {
+    font-size: 13px;
+    line-height: 2;
+    opacity: .9;
+    max-width: 500px;
+  }
+  .bsod-progress {
+    margin-top: 30px;
+    font-size: 14px;
+  }
+  .bsod-code {
+    margin-top: 20px;
+    font-size: 11px;
+    opacity: .6;
+  }
+
+  /* ─── SCREEN 5: FAKE RECOVERY ─── */
+  #screen5 {
+    background: #000;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    align-items: flex-start;
+    padding: 40px;
+    line-height: 2;
+  }
+  .recovery-green { color: #0f0; }
+  .recovery-yellow { color: #ff0; }
+  .recovery-red { color: #f44; }
+  .recovery-white { color: #fff; }
+
+  /* ─── SCREEN 6: REAL BIRTHDAY ─── */
+  #screen6 {
+    background: #0a0015;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: none;
+    align-items: stretch;
+    justify-content: flex-start;
+    z-index: 100;
+  }
+  #screen6.active {
+    display: block;
+  }
+
+  /* Birthday content styles */
+  .bday-stars {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+  }
+  .star {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: #fff; border-radius: 50%;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  #confetti {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 999;
+  }
+  .floating-emojis {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 5;
+    overflow: hidden;
+  }
+  .float-emoji {
+    position: absolute; font-size: 1.8rem; opacity: 0;
+    animation: float-up linear infinite;
+  }
+
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 2rem;
+    position: relative;
+    background: radial-gradient(ellipse at center, #1a0040 0%, #0a0015 70%);
+  }
+  .hero-title {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(3rem, 10vw, 7rem);
+    background: linear-gradient(135deg, #ff6b9d, #ffd700, #c44dff, #00d4ff, #ff6b9d);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 30px rgba(196, 77, 255, .5));
+    animation: gradient-spin 4s ease infinite, fade-up .8s .3s forwards;
+    opacity: 0;
+  }
+  .hero-sub {
+    font-family: 'Dancing Script', cursive;
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    color: #e0b0ff; margin-top: 1rem;
+    opacity: 0; animation: fade-up .8s .6s forwards;
+  }
+  .hero-name {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(2rem, 6vw, 4.5rem);
+    color: #ffd700; margin-top: .5rem;
+    text-shadow: 0 0 20px rgba(255,215,0,.5), 0 0 40px rgba(255,215,0,.3);
+    opacity: 0;
+    animation: fade-up .8s .9s forwards, glow 2s ease-in-out infinite 1.5s;
+  }
+  .scroll-hint {
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: .5rem;
+    color: #6a4d8a; font-size: .85rem;
+    opacity: 0; animation: fade-up .8s 2s forwards;
+  }
+  .scroll-arrow {
+    width: 24px; height: 24px;
+    border-right: 2px solid #6a4d8a;
+    border-bottom: 2px solid #6a4d8a;
+    transform: rotate(45deg);
+    animation: scroll-bounce 1.5s ease-in-out infinite;
+  }
+
+  /* Hack section */
+  .hack-section {
+    padding: 4rem 2rem; text-align: center;
+    position: relative;
+  }
+  .hack-card {
+    max-width: 550px; margin: 0 auto;
+    background: linear-gradient(135deg, rgba(231,76,60,.15), rgba(142,68,173,.1));
+    border: 2px solid rgba(231,76,60,.3);
+    border-radius: 20px; padding: 2.5rem;
+    position: relative; overflow: hidden;
+  }
+  .hack-card img {
+    width: 100%; border-radius: 10px;
+    border: 2px solid rgba(231,76,60,.4);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 30px rgba(231,76,60,.2);
+  }
+  .hack-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(.8rem, 2vw, 1rem);
+    color: #e74c3c; line-height: 2;
+    margin-bottom: .5rem;
+  }
+  .hack-sub {
+    font-size: .9rem; color: #c8a0e8;
+    line-height: 1.7;
+  }
+
+  /* Cake section */
+  .cake-section {
+    padding: 4rem 2rem; text-align: center;
+  }
+  .big-cake {
+    font-size: clamp(6rem, 15vw, 10rem);
+    animation: bounce-gift 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 40px rgba(255,107,157,.5));
+  }
+  .cake-message {
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    color: #e0b0ff; max-width: 600px;
+    margin: 2rem auto; line-height: 1.8;
+    opacity: 0; animation: fade-up .8s .3s forwards;
+  }
+  .cake-message strong { color: #ffd700; }
+
+  /* Cards */
+  .cards-section {
+    padding: 4rem 2rem;
+    display: flex; flex-wrap: wrap; gap: 2rem;
+    justify-content: center; max-width: 1000px; margin: 0 auto;
+  }
+  .card {
+    background: linear-gradient(135deg, rgba(196,77,255,.1), rgba(110,58,255,.1));
+    border: 1px solid rgba(196,77,255,.2);
+    border-radius: 20px; padding: 2.5rem;
+    width: 280px; text-align: center;
+    backdrop-filter: blur(10px);
+    transition: transform .4s, box-shadow .4s;
+    opacity: 0; transform: translateY(40px);
+  }
+  .card.visible { opacity: 1; transform: translateY(0); transition: opacity .6s, transform .6s; }
+  .card:hover {
+    transform: translateY(-10px) scale(1.03);
+    box-shadow: 0 20px 40px rgba(196,77,255,.2);
+    border-color: rgba(196,77,255,.5);
+  }
+  .card-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+  .card-title {
+    font-family: 'Dancing Script', cursive;
+    font-size: 1.6rem; color: #ffd700; margin-bottom: .8rem;
+  }
+  .card-text { font-size: .95rem; color: #c8a0e8; line-height: 1.7; }
+
+  /* Pension */
+  .pension-section { padding: 4rem 2rem; text-align: center; }
+  .pension-card {
+    max-width: 550px; margin: 0 auto;
+    background: linear-gradient(135deg, rgba(255,107,157,.15), rgba(255,215,0,.1));
+    border: 2px dashed rgba(255,215,0,.4);
+    border-radius: 24px; padding: 3rem 2rem;
+    position: relative; overflow: hidden;
+  }
+  .pension-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,215,0,.05) 50%, transparent 60%);
+    background-size: 200% 200%; animation: shimmer 3s linear infinite;
+  }
+  .pension-title {
+    font-family: 'Pacifico', cursive;
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    color: #ffd700; margin-bottom: 1rem;
+  }
+  .pension-text {
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    color: #e0b0ff; line-height: 1.8; margin-bottom: 1.5rem;
+  }
+  .pension-joke {
+    display: inline-block; font-size: .85rem;
+    color: #ff6b9d; background: rgba(255,107,157,.1);
+    padding: 8px 20px; border-radius: 30px;
+    animation: pulse-text 2s ease-in-out infinite;
+  }
+  .money-rain { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .money-emoji {
+    position: absolute; font-size: 1.5rem;
+    animation: fall linear infinite; opacity: .6;
+  }
+
+  .footer {
+    text-align: center; padding: 3rem 2rem;
+    color: #6a4d8a; font-size: .85rem;
+  }
+  .footer span { color: #ff6b9d; }
+
+  /* YouTube player */
+  #ytplayer {
+    position: fixed; bottom: 20px; right: 20px;
+    width: 280px; height: 158px;
+    border-radius: 16px;
+    border: 2px solid rgba(196,77,255,.3);
+    z-index: 50;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    opacity: 0; transform: translateY(30px);
+    transition: opacity .6s, transform .6s;
+  }
+  #ytplayer.show { opacity: 1; transform: translateY(0); }
+  .music-label {
+    position: fixed; bottom: 185px; right: 20px;
+    background: rgba(196,77,255,.2); backdrop-filter: blur(10px);
+    padding: 6px 16px; border-radius: 20px;
+    font-size: .75rem; color: #e0b0ff; z-index: 50;
+    opacity: 0; transition: opacity .6s .3s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .music-label.show { opacity: 1; }
+  .music-bars { display: flex; gap: 2px; align-items: flex-end; height: 12px; }
+  .music-bar {
+    width: 3px; background: #c44dff; border-radius: 2px;
+    animation: music-bar .8s ease-in-out infinite alternate;
+  }
+  .music-bar:nth-child(1) { height: 4px; animation-delay: 0s; }
+  .music-bar:nth-child(2) { height: 8px; animation-delay: .2s; }
+  .music-bar:nth-child(3) { height: 5px; animation-delay: .4s; }
+  .music-bar:nth-child(4) { height: 10px; animation-delay: .1s; }
+
+  /* ═══ KEYFRAMES ═══ */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes blink-cursor { 50% { opacity: 0; } }
+  @keyframes popup-in {
+    from { transform: scale(.5) translateY(30px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @keyframes pulse-btn {
+    0%, 100% { box-shadow: 0 0 10px rgba(231,76,60,.3); }
+    50% { box-shadow: 0 0 25px rgba(231,76,60,.6); }
+  }
+  @keyframes glitch-text {
+    0% { text-shadow: 2px 0 #0ff, -2px 0 #f0f; }
+    25% { text-shadow: -2px 0 #0ff, 2px 0 #f0f; }
+    50% { text-shadow: 2px 2px #0ff, -2px -2px #f0f; }
+    75% { text-shadow: -1px 2px #0ff, 1px -2px #f0f; }
+    100% { text-shadow: 2px 0 #0ff, -2px 0 #f0f; }
+  }
+  @keyframes gradient-spin {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes fade-up { to { opacity: 1; transform: translateY(0); } }
+  @keyframes glow {
+    0%, 100% { text-shadow: 0 0 20px rgba(255,215,0,.5), 0 0 40px rgba(255,215,0,.3); }
+    50% { text-shadow: 0 0 40px rgba(255,215,0,.8), 0 0 80px rgba(255,215,0,.5); }
+  }
+  @keyframes pulse-text {
+    0%, 100% { opacity: .7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
+  }
+  @keyframes bounce-gift {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: .2; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+  @keyframes float-up {
+    0% { transform: translateY(100vh) rotate(0); opacity: 0; }
+    10% { opacity: .8; }
+    90% { opacity: .8; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+  @keyframes fall {
+    0% { transform: translateY(-10%); opacity: .8; }
+    100% { transform: translateY(110vh); opacity: 0; }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% -200%; }
+    100% { background-position: 200% 200%; }
+  }
+  @keyframes music-bar { to { height: 12px; } }
+  @keyframes scroll-bounce {
+    0%, 100% { transform: rotate(45deg) translateY(0); }
+    50% { transform: rotate(45deg) translateY(8px); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translate(-50%, -50%); }
+    10% { transform: translate(-48%, -52%); }
+    20% { transform: translate(-52%, -48%); }
+    30% { transform: translate(-50%, -52%); }
+    40% { transform: translate(-48%, -50%); }
+    50% { transform: translate(-52%, -52%); }
+    60% { transform: translate(-48%, -48%); }
+    70% { transform: translate(-52%, -50%); }
+    80% { transform: translate(-50%, -48%); }
+    90% { transform: translate(-48%, -52%); }
+  }
+  @keyframes screen-flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: .3; }
+    94% { opacity: 1; }
+    96% { opacity: .5; }
+    97% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ SCREEN 1: BIOS BOOT ═══ -->
+<div class="screen active" id="screen1">
+  <div id="biosText"></div>
+</div>
+
+<!-- ═══ SCREEN 2: WINDOWS UPDATE ═══ -->
+<div class="screen" id="screen2">
+  <div class="win-update-icon"></div>
+  <div class="win-update-text">Trabajando en actualizaciones</div>
+  <div class="win-update-percent" id="updatePercent">0%</div>
+  <div class="win-update-sub">No apagues el equipo. Esto puede tardar un rato.</div>
+  <div class="win-update-sub">Tu PC se reiniciará varias veces.</div>
+</div>
+
+<!-- ═══ SCREEN 3: DESKTOP + POPUPS ═══ -->
+<div class="screen" id="screen3">
+  <!-- Virus popup -->
+  <div class="popup popup-virus" id="popupVirus">
+    <div class="popup-header">
+      <span>⚠️ Windows Defender - ALERTA CRÍTICA</span>
+      <div class="popup-close" onclick="shakePopup(this)">✕</div>
+    </div>
+    <div class="popup-body">
+      <div class="virus-icon">🦠</div>
+      <div class="virus-title">¡¡ 47 VIRUS DETECTADOS !!</div>
+      <div class="virus-text">
+        Se han detectado amenazas críticas en tu sistema.<br>
+        Troyano: <b>FelizCumple.exe</b><br>
+        Malware: <b>PensionAlimenticia.dll</b><br>
+        Spyware: <b>SammyNoTeHackeen.bat</b>
+      </div>
+      <button class="virus-btn" onclick="nextPopup(1)">ESCANEAR AHORA</button>
+    </div>
+  </div>
+
+  <!-- Warning popup -->
+  <div class="popup popup-warn" id="popupWarn">
+    <div class="popup-header">
+      <span>🔶 Firewall de Windows</span>
+      <div class="popup-close" onclick="shakePopup(this)">✕</div>
+    </div>
+    <div class="popup-body">
+      <div style="font-size:40px; margin-bottom:10px">🔥</div>
+      <div class="warn-title">Conexión sospechosa detectada</div>
+      <div class="warn-text">
+        El programa <b>"HackerDeSammy.exe"</b> está intentando<br>
+        acceder a la cuenta de Twitter de Sammy.<br><br>
+        <i>Otra vez no, Sammy... 😩</i>
+      </div>
+      <button class="virus-btn" style="background:#e67e22; margin-top:12px" onclick="nextPopup(2)">Bloquear (de nuevo)</button>
+    </div>
+  </div>
+
+  <!-- Error popup -->
+  <div class="popup popup-error" id="popupError">
+    <div class="popup-header">
+      <span>❌ Error del sistema</span>
+      <div class="popup-close" onclick="shakePopup(this)">✕</div>
+    </div>
+    <div class="popup-body">
+      <div class="error-icon">💀</div>
+      <div class="error-title">Error fatal: CUMPLEAÑOS_OVERFLOW</div>
+      <div class="error-text">
+        La cantidad de años de Sammy ha excedido<br>
+        el límite del sistema. Reiniciando edad...<br><br>
+        <b>Error code: 0xFELICIDADES</b>
+      </div>
+      <button class="virus-btn" style="background:#2c3e50; margin-top:12px" onclick="nextPopup(3)">Aceptar la vejez</button>
+    </div>
+  </div>
+
+  <!-- Hacked popup with Sammy image -->
+  <div class="popup popup-hacked" id="popupHacked">
+    <div class="popup-header">
+      <span>🔓 CUENTA HACKEADA - EVIDENCIA.png</span>
+      <div class="popup-close" onclick="shakePopup(this)">✕</div>
+    </div>
+    <div class="popup-body">
+      <img class="hacked-img" src="sammy_hack.png" alt="Sammy hackeado" onerror="this.style.display='none'">
+      <div class="hacked-text">
+        SAMMY POR FAVOR<br>
+        QUE YA NO TE HACKEEN<br>
+        LA CUENTA 😭😭😭
+      </div>
+    </div>
+  </div>
+
+  <div class="fake-taskbar">
+    <div class="taskbar-start">⊞ Inicio</div>
+    <div class="taskbar-time" id="taskbarTime">12:00</div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN 4: BSOD ═══ -->
+<div class="screen" id="screen4">
+  <div class="bsod-sad">:(</div>
+  <div class="bsod-title">Tu PC tuvo un problema y necesita reiniciarse.</div>
+  <div class="bsod-text">
+    Estamos recopilando información del error y cuando terminemos,
+    te mostraremos algo bonito. Probablemente.
+  </div>
+  <div class="bsod-progress" id="bsodProgress">0% completo</div>
+  <div class="bsod-code">
+    Código de detención: FELIZ_CUMPLEAÑOS_SAMMY<br>
+    Si quieres saber más, busca: "cómo no dejarte hackear la cuenta"
+  </div>
+</div>
+
+<!-- ═══ SCREEN 5: RECOVERY ═══ -->
+<div class="screen" id="screen5">
+  <div id="recoveryText"></div>
+</div>
+
+<!-- ═══ SCREEN 6: THE REAL BIRTHDAY ═══ -->
+<div class="screen" id="screen6">
+  <div class="bday-stars" id="stars"></div>
+  <canvas id="confetti"></canvas>
+  <div class="floating-emojis" id="floatingEmojis"></div>
+
+  <section class="hero">
+    <div class="hero-title">¡Feliz Cumpleaños!</div>
+    <div class="hero-sub">Con mucho cariño para</div>
+    <div class="hero-name">✨ Sammy ✨</div>
+    <div class="scroll-hint">
+      <span>Desliza hacia abajo</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <section class="cake-section">
+    <div class="big-cake">🎂</div>
+    <p class="cake-message">
+      Hoy es un día súper especial porque llegaste al mundo
+      y el mundo se puso <strong>más bonito</strong>.
+      Que este nuevo año te traiga todo lo que mereces
+      (que es mucho, eh). 🌟
+    </p>
+  </section>
+
+  <!-- SAMMY HACK SECTION -->
+  <section class="hack-section">
+    <div class="hack-card">
+      <img src="sammy_hack.png" alt="Sammy hackeado" onerror="this.parentElement.style.display='none'">
+      <div class="hack-title">
+        SAMMY POR FAVOR 😭<br>
+        QUE YA NO TE HACKEEN LA CUENTA
+      </div>
+      <p class="hack-sub">
+        Ya van como 500 veces... ponle verificación en dos pasos o algo porfa 😩🔐
+      </p>
+    </div>
+  </section>
+
+  <section class="cards-section">
+    <div class="card" data-delay="0">
+      <div class="card-icon">🎈</div>
+      <div class="card-title">Muchas Felicidades</div>
+      <p class="card-text">Que este cumpleaños sea el inicio de un capítulo increíble lleno de aventuras y momentos hermosos.</p>
+    </div>
+    <div class="card" data-delay="150">
+      <div class="card-icon">⭐</div>
+      <div class="card-title">Brillas Mucho</div>
+      <p class="card-text">Eres de esas personas que iluminan cualquier lugar al que llegan. Nunca dejes de brillar, Sammy.</p>
+    </div>
+    <div class="card" data-delay="300">
+      <div class="card-icon">🎉</div>
+      <div class="card-title">A Celebrar</div>
+      <p class="card-text">Hoy se celebra a lo grande. Te mereces toda la felicidad del mundo y un poquito más.</p>
+    </div>
+    <div class="card" data-delay="450">
+      <div class="card-icon">🔐</div>
+      <div class="card-title">Un Consejo</div>
+      <p class="card-text">Activa la verificación en dos pasos. Es gratis. En serio. Hazlo. AHORA. Por favor. 😭</p>
+    </div>
+  </section>
+
+  <section class="pension-section">
+    <div class="pension-card">
+      <div class="money-rain" id="moneyRain"></div>
+      <div class="pension-title">Ah, y por cierto... 💸</div>
+      <p class="pension-text">
+        Aprovechando que estás de buenas...<br>
+        ¿No me podrías pagar la <strong style="color:#ffd700">pensión alimenticia</strong>?
+        👀💰<br><br>
+        Digo, ya que andamos festejando...
+      </p>
+      <span class="pension-joke">✨ es broma ✨ ...o no 👀</span>
+    </div>
+  </section>
+
+  <section class="cake-section" style="padding-bottom: 2rem;">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">🥳🎊🎆</div>
+    <p class="cake-message">
+      Ya en serio, <strong>pásala increíble</strong> hoy.<br>
+      Te lo mereces todo y más. 🫶<br><br>
+      <span style="font-family:'Pacifico',cursive; font-size:1.5em; color:#ffd700;">
+        ¡Feliz Cumpleaños, Sammy!
+      </span>
+    </p>
+  </section>
+
+  <div class="footer">
+    Hecho con <span>♥</span> para Sammy | 2026
+  </div>
+</div>
+
+<!-- YouTube player -->
+<iframe id="ytplayer" src="" allow="autoplay; encrypted-media" allowfullscreen frameborder="0"></iframe>
+<div class="music-label" id="musicLabel">
+  <div class="music-bars">
+    <div class="music-bar"></div><div class="music-bar"></div>
+    <div class="music-bar"></div><div class="music-bar"></div>
+  </div>
+  Cepillín - Feliz Cumpleaños 🎵
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// SCREEN FLOW CONTROLLER
+// ═══════════════════════════════════════
+
+const screens = ['screen1','screen2','screen3','screen4','screen5','screen6'];
+let currentScreen = 0;
+
+function showScreen(idx) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screens[idx]).classList.add('active');
+  currentScreen = idx;
+}
+
+// Update taskbar time
+document.getElementById('taskbarTime').textContent =
+  new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+
+// ─── SCREEN 1: BIOS BOOT ───
+const biosLines = [
+  { text: 'AMIBIOS (C) 2026 American Megatrends, Inc.', cls: '' },
+  { text: 'Sammy Birthday BIOS v6.9 - Build 42069', cls: 'bios-yellow' },
+  { text: '', cls: '' },
+  { text: 'CPU: Intel Core i9-13900K @ 5.80 GHz', cls: '' },
+  { text: 'RAM: 64 GB DDR5 (de la que no tiene Sammy lol)', cls: '' },
+  { text: '', cls: '' },
+  { text: 'Detecting Hard Drives...', cls: '' },
+  { text: '  Primary Master: SAMSUNG 980 PRO 2TB .......... [OK]', cls: 'bios-green' },
+  { text: '  Primary Slave:  FOTOS_DE_SAMMY.vhd ........... [HACKED]', cls: 'bios-red' },
+  { text: '  Secondary:      PENSION_ALIMENTICIA.iso ...... [PENDING]', cls: 'bios-yellow' },
+  { text: '', cls: '' },
+  { text: 'Checking system integrity...', cls: '' },
+  { text: '  Twitter account: ............................ [COMPROMISED]', cls: 'bios-red' },
+  { text: '  Security level: ............................. [NULO]', cls: 'bios-red' },
+  { text: '  Birthday status: ............................ [FELIZ]', cls: 'bios-green' },
+  { text: '', cls: '' },
+  { text: 'Press DEL to enter Setup, F2 for BIOS, F12 for Boot Menu', cls: 'bios-yellow' },
+  { text: 'Loading Windows...', cls: '' },
+];
+
+let biosIdx = 0;
+const biosContainer = document.getElementById('biosText');
+
+function typeBiosLine() {
+  if (biosIdx >= biosLines.length) {
+    setTimeout(() => showScreen(1), 800);
+    startWindowsUpdate();
+    return;
+  }
+  const line = biosLines[biosIdx];
+  const el = document.createElement('div');
+  if (line.cls) el.className = line.cls;
+  el.textContent = line.text || ' ';
+  biosContainer.appendChild(el);
+  biosIdx++;
+  const delay = line.text.includes('...') ? 400 : 80;
+  setTimeout(typeBiosLine, delay);
+}
+
+setTimeout(typeBiosLine, 500);
+
+// ─── SCREEN 2: WINDOWS UPDATE ───
+function startWindowsUpdate() {
+  let pct = 0;
+  const el = document.getElementById('updatePercent');
+  const interval = setInterval(() => {
+    pct += Math.floor(Math.random() * 8) + 1;
+    if (pct > 100) pct = 100;
+    el.textContent = pct + '%';
+    if (pct >= 100) {
+      clearInterval(interval);
+      setTimeout(() => { showScreen(2); startDesktopPopups(); }, 600);
+    }
+  }, 200);
+}
+
+// ─── SCREEN 3: DESKTOP POPUPS ───
+let popupStep = 0;
+function startDesktopPopups() {
+  setTimeout(() => { document.getElementById('popupVirus').classList.add('show'); }, 500);
+}
+
+function shakePopup(btn) {
+  const popup = btn.closest('.popup');
+  popup.style.animation = 'shake .4s';
+  setTimeout(() => popup.style.animation = '', 400);
+}
+
+function nextPopup(step) {
+  if (step === 1) {
+    document.getElementById('popupWarn').classList.add('show');
+  } else if (step === 2) {
+    document.getElementById('popupError').classList.add('show');
+  } else if (step === 3) {
+    document.getElementById('popupHacked').classList.add('show');
+    setTimeout(() => {
+      showScreen(3);
+      startBSOD();
+    }, 3000);
+  }
+}
+
+// ─── SCREEN 4: BSOD ───
+function startBSOD() {
+  let pct = 0;
+  const el = document.getElementById('bsodProgress');
+  const interval = setInterval(() => {
+    pct += Math.floor(Math.random() * 5) + 1;
+    if (pct > 100) pct = 100;
+    el.textContent = pct + '% completo';
+    if (pct >= 100) {
+      clearInterval(interval);
+      setTimeout(() => { showScreen(4); startRecovery(); }, 800);
+    }
+  }, 150);
+}
+
+// ─── SCREEN 5: RECOVERY ───
+const recoveryLines = [
+  { text: 'Microsoft Windows Recovery Console', cls: 'recovery-white' },
+  { text: '=========================================', cls: 'recovery-white' },
+  { text: '', cls: '' },
+  { text: 'C:\\> chkdsk /f /r', cls: 'recovery-green' },
+  { text: 'Scanning drive C: for errors...', cls: 'recovery-white' },
+  { text: 'ERROR: felicidad.dll is corrupted', cls: 'recovery-red' },
+  { text: 'FIXING: Reinstalling felicidad.dll...', cls: 'recovery-yellow' },
+  { text: 'SUCCESS: felicidad.dll restored', cls: 'recovery-green' },
+  { text: '', cls: '' },
+  { text: 'C:\\> net stop "hackeos_de_sammy"', cls: 'recovery-green' },
+  { text: 'Stopping service "hackeos_de_sammy"...', cls: 'recovery-white' },
+  { text: 'ERROR: Service cannot be stopped. Sammy keeps clicking links.', cls: 'recovery-red' },
+  { text: '', cls: '' },
+  { text: 'C:\\> birthday.exe --target=Sammy --mode=feliz', cls: 'recovery-green' },
+  { text: 'Initializing birthday protocol...', cls: 'recovery-white' },
+  { text: 'Loading confetti.dll .............. [OK]', cls: 'recovery-green' },
+  { text: 'Loading musica_cepillin.mp3 ....... [OK]', cls: 'recovery-green' },
+  { text: 'Loading pension_alimenticia.pdf ... [NICE TRY]', cls: 'recovery-yellow' },
+  { text: 'Loading amor_y_cariño.exe ......... [OK]', cls: 'recovery-green' },
+  { text: '', cls: '' },
+  { text: '★ BIRTHDAY PROTOCOL READY ★', cls: 'recovery-yellow' },
+  { text: 'Launching in 3... 2... 1...', cls: 'recovery-green' },
+];
+
+function startRecovery() {
+  const container = document.getElementById('recoveryText');
+  let idx = 0;
+  function typeRecoveryLine() {
+    if (idx >= recoveryLines.length) {
+      setTimeout(launchBirthday, 1200);
+      return;
+    }
+    const line = recoveryLines[idx];
+    const el = document.createElement('div');
+    if (line.cls) el.className = line.cls;
+    el.textContent = line.text || ' ';
+    container.appendChild(el);
+    idx++;
+    const delay = line.text.includes('...') ? 350 : 60;
+    setTimeout(typeRecoveryLine, delay);
+  }
+  typeRecoveryLine();
+}
+
+// ─── SCREEN 6: BIRTHDAY ───
+function launchBirthday() {
+  document.title = '🎂 ¡Feliz Cumpleaños Sammy! 🎂';
+  showScreen(5);
+  document.body.style.overflow = 'auto';
+
+  // Music
+  const player = document.getElementById('ytplayer');
+  player.src = 'https://www.youtube.com/embed/5QNXO5MGBEA?autoplay=1&loop=1&playlist=5QNXO5MGBEA&controls=1&modestbranding=1';
+  setTimeout(() => {
+    player.classList.add('show');
+    document.getElementById('musicLabel').classList.add('show');
+  }, 500);
+
+  createStars();
+  launchConfetti();
+  spawnFloatingEmojis();
+  createMoneyRain();
+  setupScrollReveal();
+}
+
+// ─── BIRTHDAY HELPERS ───
+function createStars() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = Math.random() * 5 + 's';
+    s.style.animationDuration = (2 + Math.random() * 3) + 's';
+    s.style.width = s.style.height = (1 + Math.random() * 3) + 'px';
+    c.appendChild(s);
+  }
+}
+
+function launchConfetti() {
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const pieces = [];
+  const colors = ['#ff6b9d','#c44dff','#6e3aff','#ffd700','#00d4ff','#ff4757','#2ed573','#ff9ff3'];
+  for (let i = 0; i < 200; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      w: 6 + Math.random() * 8, h: 4 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rotSpeed: (Math.random() - .5) * 10,
+      vy: 1.5 + Math.random() * 3,
+      vx: (Math.random() - .5) * 2,
+      opacity: 1
+    });
+  }
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    pieces.forEach(p => {
+      if (p.opacity <= 0) return;
+      alive = true;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.globalAlpha = p.opacity;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+      p.y += p.vy; p.x += p.vx; p.rotation += p.rotSpeed;
+      if (p.y > canvas.height) p.opacity -= .02;
+    });
+    frame++;
+    if (alive && frame < 400) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  draw();
+  window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+}
+
+function spawnFloatingEmojis() {
+  const emojis = ['🎈','🎉','🎊','✨','💜','🎂','🌟','🎁','💫','🥳','🎶','💖'];
+  const container = document.getElementById('floatingEmojis');
+  setInterval(() => {
+    const el = document.createElement('div');
+    el.className = 'float-emoji';
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.left = Math.random() * 100 + '%';
+    el.style.animationDuration = (6 + Math.random() * 6) + 's';
+    el.style.fontSize = (1.2 + Math.random() * 1.5) + 'rem';
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 12000);
+  }, 600);
+}
+
+function createMoneyRain() {
+  const c = document.getElementById('moneyRain');
+  const moneys = ['💵','💰','💸','🪙','💲'];
+  for (let i = 0; i < 12; i++) {
+    const m = document.createElement('div');
+    m.className = 'money-emoji';
+    m.textContent = moneys[Math.floor(Math.random() * moneys.length)];
+    m.style.left = Math.random() * 100 + '%';
+    m.style.animationDuration = (3 + Math.random() * 4) + 's';
+    m.style.animationDelay = Math.random() * 5 + 's';
+    m.style.fontSize = (.8 + Math.random() * 1) + 'rem';
+    c.appendChild(m);
+  }
+}
+
+function setupScrollReveal() {
+  const cards = document.querySelectorAll('.card');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), e.target.dataset.delay || 0);
+      }
+    });
+  }, { threshold: 0.2 });
+  cards.forEach(c => obs.observe(c));
+}
+</script>
+</body>
+</html>
